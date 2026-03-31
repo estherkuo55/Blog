@@ -1,6 +1,6 @@
 const Sequelize = require('sequelize');
 
-var sequelize = new Sequelize('rfpwttrx', 'rfpwttrx', 'BL0jR9AhNK73as74De5Ab2sbjjJv3tnv', {
+const sequelize = new Sequelize('rfpwttrx', 'rfpwttrx', 'BL0jR9AhNK73as74De5Ab2sbjjJv3tnv', {
   host: 'suleiman.db.elephantsql.com',
   dialect: 'postgres',
   port: 5432,
@@ -8,19 +8,12 @@ var sequelize = new Sequelize('rfpwttrx', 'rfpwttrx', 'BL0jR9AhNK73as74De5Ab2sbj
       ssl: { rejectUnauthorized: false }
   },
   query: { raw: true },
-  pool: {
-      max: 10,
-      min: 0,
-      idle: 10000
-  }
+  pool: { max: 10, min: 0, idle: 10000 }
 });
 
-var Student = sequelize.define('Student',{
-  studentID: {
-    type: Sequelize.INTEGER,
-    primaryKey: true, 
-    autoIncrement: true 
-  },
+// Define models
+const Student = sequelize.define('Student', {
+  studentID: { type: Sequelize.INTEGER, primaryKey: true, autoIncrement: true },
   firstName: Sequelize.STRING,
   lastName: Sequelize.STRING,
   email: Sequelize.STRING,
@@ -32,283 +25,104 @@ var Student = sequelize.define('Student',{
   isInternationalStudent: Sequelize.BOOLEAN,
   expectedCredential: Sequelize.STRING,
   status: Sequelize.STRING,
-  registrationDate: Sequelize.STRING
+  registrationDate: Sequelize.STRING,
+  program: Sequelize.STRING
 });
 
-var Program = sequelize.define('Program', {
-  programCode: {
-    type: Sequelize.STRING,
-    primaryKey: true
-  },
+const Program = sequelize.define('Program', {
+  programCode: { type: Sequelize.STRING, primaryKey: true },
   programName: Sequelize.STRING
-})
+});
 
-//define a relationship between Students and Programs, specifically
-Program.hasMany(Student, {foreignKey: 'program'});
+// Define relationships
+Program.hasMany(Student, { foreignKey: 'program' });
+Student.belongsTo(Program, { foreignKey: 'program' });
 
+// Initialize database
 function initialize() {
-  return new Promise((resolve, reject) => {
-    sequelize.sync()
-    .then(() => {
-      resolve();
-    })
-    .catch((err) => {
-      reject('unable to sync the database');
-    })
-  });
+  return sequelize.sync()
+    .then(() => console.log('Database synced'))
+    .catch((err) => Promise.reject('Unable to sync the database: ' + err));
 }
 
-function getAllStudents() {
-  return new Promise((resolve, reject) => {
-    Student.findAll()
-    .then((data) => {
-      resolve(data);
-    })
-    .catch((err) => {
-      reject('no results returned')
-    })
-  });
-}
-
-function getPrograms() {
-  return new Promise((resolve, reject) => {
-    sequelize.sync().then(function() {
-        Program.findAll()
-      .then((data) => {
-        resolve(data);
-      })
-    })
-    .catch((err) => {
-      reject('no results returned')
-      console.log(err)
-    })
-  });
-}
+// Students
+function getAllStudents() { return Student.findAll(); }
 
 function getStudentsByStatus(status) {
-  return new Promise((resolve, reject) => {
-    Student.findAll({
-      where: {
-        status: status
-      }
-    })
-    .then((data) => {
-      resolve(data);
-    })
-    .catch((err) => {
-      reject('no results returned')
-    })
-  });
-}
-  
-function getStudentsByProgramCode(program) {
-  return new Promise((resolve, reject) => {
-    sequelize.sync().then(function() {
-      Student.findAll({ 
-        where: { program: program }
-      })
-      .then(function(data){
-          resolve(data);
-      })
-    })
-    .catch(function(err) {
-      reject(err);
-    });
-  });
-}
-  
-function getStudentsByExpectedCredential(credential) {
-  return new Promise((resolve, reject) => {
-    sequelize.sync()
-    .then(function(){
-      Student.findAll({
-          where: { expectedCredential: credential}
-        })
-        .then(function(data){
-          resolve(data);
-        })
-    })
-    .catch(function(err){
-      reject(err);
-    })
-  });
+  return Student.findAll({ where: { status } });
 }
 
-function getStudentById(sid) {
-   return new Promise((resolve, reject) =>{
-    sequelize.sync()
-    .then(function() {
-      Student.findAll({
-        where: {studentID: sid}
-      })
-      .then(function(data){
-        resolve(data[0])
-      })
-    })
-    .catch(function(err){
-      reject('Student not found', err)
-    })
-   })
+function getStudentsByProgramCode(program) {
+  return Student.findAll({ where: { program } });
+}
+
+function getStudentsByExpectedCredential(credential) {
+  return Student.findAll({ where: { expectedCredential: credential } });
+}
+
+function getStudentById(studentID) {
+  return Student.findByPk(studentID);
 }
 
 function addStudent(studentData) {
-  studentData.isInternationalStudent = (studentData.isInternationalStudent) ? true : false;
-  for(let i in studentData){
-    if(studentData[i] === ""){
-      studentData[i] = null;
-    }
+  studentData.isInternationalStudent = !!studentData.isInternationalStudent;
+  for (let key in studentData) {
+    if (studentData[key] === "") studentData[key] = null;
   }
-  return new Promise((resolve, reject) => {
-    Student.create(studentData)
-    .then(() => {
-      resolve('Student created successfully')
-    })
-    .catch((err) => {
-      reject('unable to create student')
-    })
-  });
+  return Student.create(studentData);
 }
 
 function updateStudent(studentData) {
-  studentData.isInternationalStudent = (studentData.isInternationalStudent) ? true : false;
-  for(let i = 0; i < studentData.length; i++){
-    if (studentData.hasOwnProperty(i) && studentData[i] === "") {
-          studentData[i] = null;
-        }
+  studentData.isInternationalStudent = !!studentData.isInternationalStudent;
+  for (let key in studentData) {
+    if (studentData[key] === "") studentData[key] = null;
   }
-  return new Promise((resolve, reject) => {
-    Student.update(studentData, {
-      where: {
-        studentID: studentData.studentID
-      }
-    })
-      .then(() => {
-        resolve();
-      })
-      .catch((err) => {
-        reject("Unable to update student" + err);
-        console.log(studentData)
-      });
-  });
+  return Student.update(studentData, { where: { studentID: studentData.studentID } });
 }
 
-function addProgram(programData){
-  return new Promise((resolve, reject) => {
-    for(let i in programData){
-      if(programData[i] && programData.hasOwnProperty(i) === ""){
-        programData[i] = null;
-      }
-    }
-    Program.create(programData)
-    .then(() => {
-      resolve()
-    })
-    .catch((err) => {
-      reject('unable to create program')
-      console.log(err);
-    })
-  })
+function deleteStudentById(studentID) {
+  return Student.destroy({ where: { studentID } });
 }
 
-function updateProgram(programData){
-  return new Promise((resolve, reject) => {
-    for(let i = 0; i< programData.length; i++){
-      for(let i = 0; i < programData.length; i++){
-        if(programData[i] = ""){
-          programData[i] = null;
-        }
-      } 
-    }
-    Program.update(programData, {
-      where: {programCode: programData.programCode}
-    })
-    .then((programData) => {
-      resolve(programData);
-    })
-    .catch((err) => {
-      reject("Unable to update student: " + err);
-    })
-  })
+// Programs
+function getPrograms() { return Program.findAll(); }
+
+function getProgramByCode(programCode) {
+  return Program.findByPk(programCode);
 }
 
-function getProgramByCode(pcode){
-  return new Promise((resolve, reject) => {
-    sequelize.sync()
-    .then(() => {
-      Program.findAll({
-        where: {programCode: pcode}
-      })
-      .then((data) => {
-        resolve(data[0])
-      })
-    })
-    .catch((err) => {
-      reject(err);
-    })
-  })
-}
-
-function deleteProgramByCode(pcode) {
-  return new Promise((resolve, reject) => {
-    sequelize.sync().then(() => { 
-      Program.destroy(
-        { 
-          where: { programCode: pcode }
-        }).then(function()
-        {
-          console.log( pcode, " deleted");
-           resolve();
-        })
-
-    }).catch((err) => {
-      reject("Fail to delete this program: ", err);
-    });
-
-  });
-}
-
-function deleteStudentById(id) {
-  return new Promise((resolve, reject)=> {
-    sequelize.sync().then(function() { 
-      Student.destroy( { 
-          where: { studentID: id }
-        }).then(() => {
-          console.log(id, " deleted");
-           resolve();
-        })
-
-    }).catch((err) => {
-      reject("Fail to delete this program: ", err);
-    });
-
-  });
-
-}
-
-function ensureLogin(req, res, next) {
-  if (!req.session.user) {
-    res.redirect('/login');
-  } else {
-    next();
+function addProgram(programData) {
+  for (let key in programData) {
+    if (programData[key] === "") programData[key] = null;
   }
+  return Program.create(programData);
 }
 
+function updateProgram(programData) {
+  for (let key in programData) {
+    if (programData[key] === "") programData[key] = null;
+  }
+  return Program.update(programData, { where: { programCode: programData.programCode } });
+}
+
+function deleteProgramByCode(programCode) {
+  return Program.destroy({ where: { programCode } });
+}
+
+// Export
 module.exports = {
   initialize,
   getAllStudents,
-  getPrograms,
-  addStudent,
   getStudentsByStatus,
   getStudentsByProgramCode,
   getStudentsByExpectedCredential,
   getStudentById,
+  addStudent,
   updateStudent,
+  deleteStudentById,
+  getPrograms,
+  getProgramByCode,
   addProgram,
   updateProgram,
-  getProgramByCode,
-  deleteProgramByCode,
-  deleteStudentById,
-  ensureLogin
+  deleteProgramByCode
 };
-
-
