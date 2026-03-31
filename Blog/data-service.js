@@ -1,18 +1,24 @@
 const Sequelize = require('sequelize');
 
-const sequelize = new Sequelize('rfpwttrx', 'rfpwttrx', 'BL0jR9AhNK73as74De5Ab2sbjjJv3tnv', {
+// 建立 Sequelize 實例
+var sequelize = new Sequelize('rfpwttrx', 'rfpwttrx', 'BL0jR9AhNK73as74De5Ab2sbjjJv3tnv', {
   host: 'suleiman.db.elephantsql.com',
   dialect: 'postgres',
   port: 5432,
   dialectOptions: {
-      ssl: { rejectUnauthorized: false }
+      ssl: { rejectUnauthorized: false } // 保持 SSL
   },
   query: { raw: true },
-  pool: { max: 10, min: 0, idle: 10000 }
+  pool: {
+      max: 10,
+      min: 0,
+      idle: 10000
+  },
+  logging: console.log // 開啟 SQL logging，部署時方便看
 });
 
-// Define models
-const Student = sequelize.define('Student', {
+// 定義 Student model
+var Student = sequelize.define('Student',{
   studentID: { type: Sequelize.INTEGER, primaryKey: true, autoIncrement: true },
   firstName: Sequelize.STRING,
   lastName: Sequelize.STRING,
@@ -26,42 +32,62 @@ const Student = sequelize.define('Student', {
   expectedCredential: Sequelize.STRING,
   status: Sequelize.STRING,
   registrationDate: Sequelize.STRING,
-  program: Sequelize.STRING
+  program: Sequelize.STRING // foreign key 對應 Program
 });
 
-const Program = sequelize.define('Program', {
+// 定義 Program model
+var Program = sequelize.define('Program', {
   programCode: { type: Sequelize.STRING, primaryKey: true },
   programName: Sequelize.STRING
 });
 
-// Define relationships
+// 關聯
 Program.hasMany(Student, { foreignKey: 'program' });
-Student.belongsTo(Program, { foreignKey: 'program' });
 
-// Initialize database
+// 初始化資料庫
 function initialize() {
-  return sequelize.sync()
-    .then(() => console.log('Database synced'))
-    .catch((err) => Promise.reject('Unable to sync the database: ' + err));
+  return sequelize.authenticate()
+    .then(() => {
+      console.log("Database connected successfully.");
+      return sequelize.sync(); // 只 sync 一次
+    })
+    .catch((err) => {
+      console.error("Unable to connect or sync the database:", err);
+      throw new Error("Unable to sync the database");
+    });
 }
 
-// Students
-function getAllStudents() { return Student.findAll(); }
+// ---------------------- CRUD Function ---------------------- //
+
+function getAllStudents() {
+  return Student.findAll()
+    .catch(() => { throw new Error("No results returned"); });
+}
+
+function getPrograms() {
+  return Program.findAll()
+    .catch(() => { throw new Error("No results returned"); });
+}
 
 function getStudentsByStatus(status) {
-  return Student.findAll({ where: { status } });
+  return Student.findAll({ where: { status } })
+    .catch(() => { throw new Error("No results returned"); });
 }
 
 function getStudentsByProgramCode(program) {
-  return Student.findAll({ where: { program } });
+  return Student.findAll({ where: { program } })
+    .catch((err) => { throw err; });
 }
 
 function getStudentsByExpectedCredential(credential) {
-  return Student.findAll({ where: { expectedCredential: credential } });
+  return Student.findAll({ where: { expectedCredential: credential } })
+    .catch((err) => { throw err; });
 }
 
-function getStudentById(studentID) {
-  return Student.findByPk(studentID);
+function getStudentById(sid) {
+  return Student.findByPk(sid)
+    .then((data) => data || null)
+    .catch((err) => { throw new Error("Student not found: " + err); });
 }
 
 function addStudent(studentData) {
@@ -69,7 +95,8 @@ function addStudent(studentData) {
   for (let key in studentData) {
     if (studentData[key] === "") studentData[key] = null;
   }
-  return Student.create(studentData);
+  return Student.create(studentData)
+    .catch(() => { throw new Error("Unable to create student"); });
 }
 
 function updateStudent(studentData) {
@@ -77,52 +104,56 @@ function updateStudent(studentData) {
   for (let key in studentData) {
     if (studentData[key] === "") studentData[key] = null;
   }
-  return Student.update(studentData, { where: { studentID: studentData.studentID } });
+  return Student.update(studentData, { where: { studentID: studentData.studentID } })
+    .catch((err) => { throw new Error("Unable to update student: " + err); });
 }
 
-function deleteStudentById(studentID) {
-  return Student.destroy({ where: { studentID } });
-}
-
-// Programs
-function getPrograms() { return Program.findAll(); }
-
-function getProgramByCode(programCode) {
-  return Program.findByPk(programCode);
+function deleteStudentById(id) {
+  return Student.destroy({ where: { studentID: id } })
+    .catch((err) => { throw new Error("Fail to delete student: " + err); });
 }
 
 function addProgram(programData) {
   for (let key in programData) {
     if (programData[key] === "") programData[key] = null;
   }
-  return Program.create(programData);
+  return Program.create(programData)
+    .catch((err) => { throw new Error("Unable to create program: " + err); });
 }
 
 function updateProgram(programData) {
   for (let key in programData) {
     if (programData[key] === "") programData[key] = null;
   }
-  return Program.update(programData, { where: { programCode: programData.programCode } });
+  return Program.update(programData, { where: { programCode: programData.programCode } })
+    .catch((err) => { throw new Error("Unable to update program: " + err); });
 }
 
-function deleteProgramByCode(programCode) {
-  return Program.destroy({ where: { programCode } });
+function getProgramByCode(pcode) {
+  return Program.findByPk(pcode)
+    .then((data) => data || null)
+    .catch((err) => { throw err; });
 }
 
-// Export
+function deleteProgramByCode(pcode) {
+  return Program.destroy({ where: { programCode: pcode } })
+    .catch((err) => { throw new Error("Fail to delete program: " + err); });
+}
+
+// ---------------------- Export ---------------------- //
 module.exports = {
   initialize,
   getAllStudents,
+  getPrograms,
+  addStudent,
   getStudentsByStatus,
   getStudentsByProgramCode,
   getStudentsByExpectedCredential,
   getStudentById,
-  addStudent,
   updateStudent,
-  deleteStudentById,
-  getPrograms,
-  getProgramByCode,
   addProgram,
   updateProgram,
-  deleteProgramByCode
+  getProgramByCode,
+  deleteProgramByCode,
+  deleteStudentById
 };
