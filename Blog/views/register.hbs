@@ -1,0 +1,41 @@
+{{#if errorMessage}}
+  <div class="alert alert-danger">
+    <strong>Error:</strong> {{errorMessage}}
+  </div>
+{{else if successMessage}}
+  <div class="alert alert-success">
+    <strong>Success:</strong> {{successMessage}}
+  </div>
+  <a class="btn btn-success pull-right" href="/login">&nbsp;&nbsp;&nbsp;Proceed to Log in&nbsp;&nbsp;&nbsp;</a><br /><br /><br />
+{{else}}
+  <style>
+    .login-form {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+    }
+    .login-form .form-group {
+      width: 100%;
+    }
+    .login-form .login-button {
+      align-self: flex-end;
+    }
+  </style>
+  <h2>Register</h2>
+  <hr/>
+  <form action="/register" method="POST" class="login-form">
+    <div class="form-group">
+      <input type="text" name="userName" id="userName" class="form-control" placeholder="User Name" required="{{#if userName}}true{{/if}}">
+    </div>
+    <div class="form-group">
+      <input type="password" name="password" id="password" class="form-control" placeholder="Password" required>
+    </div>
+    <div class="form-group">
+      <input type="password" name="password2" id="password2" class="form-control" placeholder="Confirm Password" required>
+    </div>
+    <div class="form-group">
+      <input type="email" name="email" id="email" class="form-control" placeholder="Email Address" required>
+    </div>
+    <button type="submit" class="btn btn-primary login-button">Register</button>
+  </form>
+{{/if}}
