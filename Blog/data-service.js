@@ -1,8 +1,8 @@
 const Sequelize = require('sequelize');
 
 // 建立 Sequelize 實例
-var sequelize = new Sequelize('rfpwttrx', 'rfpwttrx', 'BL0jR9AhNK73as74De5Ab2sbjjJv3tnv', {
-  host: 'suleiman.db.elephantsql.com',
+var sequelize = new Sequelize('blog_a1mm', 'blog_a1mm_user', 'AmQTMJd6YtgyHnf79vvKmV9puMwZGhCe', {
+  host: 'dpg-d75n61p4tr6s73cagi80-a',
   dialect: 'postgres',
   port: 5432,
   dialectOptions: {
